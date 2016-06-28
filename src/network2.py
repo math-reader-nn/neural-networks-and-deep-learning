@@ -120,6 +120,14 @@ class Network(object):
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
+    def zero_weight_initializer(self):
+        """Initialize the weights using a zero matrix
+
+        """
+        self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]
+        self.weights = [np.zeros((y, x))
+                        for x, y in zip(self.sizes[:-1], self.sizes[1:])]
+
     def feedforward(self, a):
         """Return the output of the network if ``a`` is input."""
         for b, w in zip(self.biases, self.weights):
@@ -271,6 +279,10 @@ class Network(object):
                         for (x, y) in data]
         return sum(int(x == y) for (x, y) in results)
 
+    def score(self, data, convert=False):
+        return -np.log((len(data)-self.accuracy(data,convert))/(len(data)+0.0))
+
+
     def total_cost(self, data, lmbda, convert=False):
         """Return the total cost for the data set ``data``.  The flag
         ``convert`` should be set to False if the data set is the
@@ -296,6 +308,14 @@ class Network(object):
         f = open(filename, "w")
         json.dump(data, f)
         f.close()
+
+    def copy_to(self, new):
+        """Copy a network into a larger network"""
+        copy(self, new)
+
+    def copy_from(self, old):
+        """Copy a network into a larger network"""
+        copy(old, self)
 
 #### Loading a Network
 def load(filename):
@@ -330,3 +350,26 @@ def sigmoid(z):
 def sigmoid_prime(z):
     """Derivative of the sigmoid function."""
     return sigmoid(z)*(1-sigmoid(z))
+
+def copy(old, new):
+    """Copy a network into a larger network"""
+    if old.num_layers <= new.num_layers:
+        for old_weights, new_weights, old_biases, new_biases in zip(old.weights,new.weights,old.biases,new.biases):
+            new_weights[0:old_weights.shape[0],0:old_weights.shape[1]]=old_weights
+            new_biases[0:old_biases.shape[0]]=old_biases
+        if old.num_layers < new.num_layers:
+            new.weights[-1] = np.eye(new.weights[-1].shape[0],new.weights[-1].shape[1])
+            new.biases[-1] = np.zeros_like(new.biases[-1])
+
+def combine(networks):
+    """Combine several networks  """
+    combined = Network([networks[0].sizes[0],sum([net.sizes[1] for net in networks]),networks[0].sizes[-1]],cost = CrossEntropyCost)
+    i = 0
+    w = 1/(len(networks)+0.0)
+    for net in networks:
+        combined.weights[0][i:i+net.sizes[1],:] = net.weights[0]
+        combined.biases[0][i:i+net.sizes[1]] = net.biases[0]
+        combined.weights[1][:,i:i+net.sizes[1]] = w*net.weights[1]
+        i=i+net.sizes[1]
+    combined.biases[1] = w*sum([net.biases[1] for net in networks])
+    return combined
