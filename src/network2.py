@@ -19,6 +19,7 @@ import sys
 
 # Third-party libraries
 import numpy as np
+import scipy.linalg as sc
 
 
 #### Define the quadratic and cross-entropy cost functions
@@ -280,8 +281,11 @@ class Network(object):
         return sum(int(x == y) for (x, y) in results)
 
     def score(self, data, convert=False):
+        """ Returns an accuracy score for a network in logarithmic scale. 
+        This could be improved if it was normalized relative to the score achieved
+        by random chance.
+        """
         return -np.log((len(data)-self.accuracy(data,convert))/(len(data)+0.0))
-
 
     def total_cost(self, data, lmbda, convert=False):
         """Return the total cost for the data set ``data``.  The flag
@@ -310,11 +314,11 @@ class Network(object):
         f.close()
 
     def copy_to(self, new):
-        """Copy a network into a larger network"""
+        """Copy this network into another network"""
         copy(self, new)
 
     def copy_from(self, old):
-        """Copy a network into a larger network"""
+        """Copy another network into this network"""
         copy(old, self)
 
 #### Loading a Network
@@ -333,14 +337,20 @@ def load(filename):
     return net
 
 #### Miscellaneous functions
-def vectorized_result(j):
+def vectorized_result(j, digits = range(10)):
     """Return a 10-dimensional unit vector with a 1.0 in the j'th position
     and zeroes elsewhere.  This is used to convert a digit (0...9)
     into a corresponding desired output from the neural network.
+    
+    Modified by Alan Bertl: optional argument digits specifies a range of
+    digits (probably a subset of 0..9) for converting data for networks which
+    only classify certain digits.
 
     """
-    e = np.zeros((10, 1))
-    e[j] = 1.0
+    
+    e = np.zeros((len(digits), 1))
+    if j in digits:
+        e[digits.index(j)] = 1.0
     return e
 
 def sigmoid(z):
@@ -352,7 +362,7 @@ def sigmoid_prime(z):
     return sigmoid(z)*(1-sigmoid(z))
 
 def copy(old, new):
-    """Copy a network into a larger network"""
+    """Copy a network into a larger network."""
     if old.num_layers <= new.num_layers:
         for old_weights, new_weights, old_biases, new_biases in zip(old.weights,new.weights,old.biases,new.biases):
             new_weights[0:old_weights.shape[0],0:old_weights.shape[1]]=old_weights
@@ -361,15 +371,24 @@ def copy(old, new):
             new.weights[-1] = np.eye(new.weights[-1].shape[0],new.weights[-1].shape[1])
             new.biases[-1] = np.zeros_like(new.biases[-1])
 
-def combine(networks):
-    """Combine several networks  """
-    combined = Network([networks[0].sizes[0],sum([net.sizes[1] for net in networks]),networks[0].sizes[-1]],cost = CrossEntropyCost)
-    i = 0
-    w = 1/(len(networks)+0.0)
-    for net in networks:
-        combined.weights[0][i:i+net.sizes[1],:] = net.weights[0]
-        combined.biases[0][i:i+net.sizes[1]] = net.biases[0]
-        combined.weights[1][:,i:i+net.sizes[1]] = w*net.weights[1]
-        i=i+net.sizes[1]
-    combined.biases[1] = w*sum([net.biases[1] for net in networks])
+def combine(networks, combocost = CrossEntropyCost):
+    """Combine several networks.  Input is a list of networks to combine,
+    returns the new network.  Networks to be combined must have compatible
+    input and output layers.
+    """
+    combined = Network([networks[0].sizes[0],sum([net.sizes[1] for net in networks]),networks[0].sizes[-1]],cost = combocost)
+
+    w = 1/(len(networks)+0.0) # Weigh all the network matrices equally
+
+    combined.weights = [np.bmat([[net.weights[0]] for net in networks]) , w*np.bmat([net.weights[1] for net in networks])]
+    combined.biases = [np.bmat([[net.biases[0]] for net in networks]) , w*sum([net.biases[1] for net in networks])]
     return combined
+
+def combine2(networks):
+    """Combines several networks, treating the output layers as independent.
+    """
+    combined = Network([networks[0].sizes[0],sum([net.sizes[1] for net in networks]),sum([net.sizes[-1] for net in networks])],cost = CrossEntropyCost)
+    combined.weights = [np.bmat([[net.weights[0]] for net in networks]) , sc.block_diag(*[net.weights[1] for net in networks])]
+    combined.biases = [np.bmat([[net.biases[0]] for net in networks]) , np.bmat([[net.biases[1]] for net in networks])]
+    return combined
+    
