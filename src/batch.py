@@ -46,8 +46,8 @@ snet = [network2.Network([784,30,1]) for i in range(10) ]
 # ...now train them.  Light training, 3 epochs each, no regularization.  
 # Accuracy measurements aren't working yet for these specialized networks, so it's
 # hard to tell how good they are on their own (probably pretty good).
-for net,training_data,i in zip(snet,straining_data,range(len(snet))):
+for net,data,i in zip(snet,straining_data,range(len(snet))):
     print "Training network for digit {0}:".format(i)
-    net.SGD(training_data, 3, 10, 0.5)
+    net.SGD(data, 3, 10, 0.5)
 
 reportcombine2(snet,validation_data)

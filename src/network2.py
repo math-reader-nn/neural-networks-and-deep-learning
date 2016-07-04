@@ -380,15 +380,15 @@ def combine(networks, combocost = CrossEntropyCost):
 
     w = 1/(len(networks)+0.0) # Weigh all the network matrices equally
 
-    combined.weights = [np.bmat([[net.weights[0]] for net in networks]) , w*np.bmat([net.weights[1] for net in networks])]
-    combined.biases = [np.bmat([[net.biases[0]] for net in networks]) , w*sum([net.biases[1] for net in networks])]
+    combined.weights = [np.bmat([[net.weights[0]] for net in networks]).A , (w*np.bmat([net.weights[1] for net in networks])).A]
+    combined.biases = [np.bmat([[net.biases[0]] for net in networks]).A , w*sum([net.biases[1] for net in networks])]
     return combined
 
 def combine2(networks):
     """Combines several networks, treating the output layers as independent.
     """
     combined = Network([networks[0].sizes[0],sum([net.sizes[1] for net in networks]),sum([net.sizes[-1] for net in networks])],cost = CrossEntropyCost)
-    combined.weights = [np.bmat([[net.weights[0]] for net in networks]) , sc.block_diag(*[net.weights[1] for net in networks])]
-    combined.biases = [np.bmat([[net.biases[0]] for net in networks]) , np.bmat([[net.biases[1]] for net in networks])]
+    combined.weights = [np.bmat([[net.weights[0]] for net in networks]).A , sc.block_diag(*[net.weights[1] for net in networks])]
+    combined.biases = [np.bmat([[net.biases[0]] for net in networks]).A , np.bmat([[net.biases[1]] for net in networks]).A]
     return combined
     
