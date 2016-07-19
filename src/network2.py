@@ -216,6 +216,9 @@ class Network(object):
         if spatial_regularization:
             w_imj = np.bmat([self.weights[0][:,1:],np.zeros((len(self.weights[0]),1))]).A
             w_ipj = np.bmat([np.zeros((len(self.weights[0]),1)),self.weights[0][:,:-1]]).A
+            for i in range(27,783,28):
+                w_imj[:,i] = np.zeros((1,len(self.weights[0])))
+                w_ipj[:,i+1] = np.zeros((1,len(self.weights[0])))
             w_ijm = np.bmat([self.weights[0][:,28:],np.zeros((len(self.weights[0]),28))]).A
             w_ijp = np.bmat([np.zeros((len(self.weights[0]),28)),self.weights[0][:,:-28]]).A
             delta_e = 0.25*(w_imj+w_ipj+w_ijm+w_ijp)
