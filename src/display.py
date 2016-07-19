@@ -2,7 +2,7 @@
 Some functions for displaying handwritten digits from the mnist data, as well as
 input layer weight vectors for a particular neuron of the first hidden layer.
 
-Usage examples: display(training_data[25][0] displays the 25th letter in 
+Usage examples: display(training_data[25][0]) displays the 25th letter in 
 training_data.
 
 display_weight(net.weights[0],2) displays the weighting that affect the input 
