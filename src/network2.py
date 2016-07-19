@@ -137,6 +137,7 @@ class Network(object):
 
     def SGD(self, training_data, epochs, mini_batch_size, eta,
             lmbda = 0.0,
+            spatial_regularization=False,
             evaluation_data=None,
             monitor_evaluation_cost=False,
             monitor_evaluation_accuracy=False,
@@ -172,7 +173,7 @@ class Network(object):
                 for k in xrange(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(
-                    mini_batch, eta, lmbda, len(training_data))
+                    mini_batch, eta, lmbda, spatial_regularization, len(training_data))
             print "Epoch %s training complete" % j
             if monitor_training_cost:
                 cost = self.total_cost(training_data, lmbda)
@@ -196,7 +197,7 @@ class Network(object):
         return evaluation_cost, evaluation_accuracy, \
             training_cost, training_accuracy
 
-    def update_mini_batch(self, mini_batch, eta, lmbda, n):
+    def update_mini_batch(self, mini_batch, eta, lmbda, spatial_regularization, n):
         """Update the network's weights and biases by applying gradient
         descent using backpropagation to a single mini batch.  The
         ``mini_batch`` is a list of tuples ``(x, y)``, ``eta`` is the
@@ -212,6 +213,13 @@ class Network(object):
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
         self.weights = [(1-eta*(lmbda/n))*w-(eta/len(mini_batch))*nw
                         for w, nw in zip(self.weights, nabla_w)]
+        if spatial_regularization:
+            w_imj = np.bmat([self.weights[0][:,1:],np.zeros((len(self.weights[0]),1))]).A
+            w_ipj = np.bmat([np.zeros((len(self.weights[0]),1)),self.weights[0][:,:-1]]).A
+            w_ijm = np.bmat([self.weights[0][:,28:],np.zeros((len(self.weights[0]),28))]).A
+            w_ijp = np.bmat([np.zeros((len(self.weights[0]),28)),self.weights[0][:,:-28]]).A
+            delta_e = 0.25*(w_imj+w_ipj+w_ijm+w_ijp)
+            self.weights[0] = self.weights[0]+eta*(lmbda/n)*delta_e # regularization by edges
         self.biases = [b-(eta/len(mini_batch))*nb
                        for b, nb in zip(self.biases, nabla_b)]
 
