@@ -3,7 +3,14 @@
 import mnist_loader as mnist
 training_data, validation_data, test_data = mnist.load_data_wrapper()
 
+#import coffee_loader as cof
+#training_data, validation_data, test_data = cof.load_data()
+
+import pyximport; pyximport.install()
+
 import network2
+
+import numpy as np
 
 def reportcombine(networks, data):
     combo = network2.combine(networks)
@@ -12,7 +19,7 @@ def reportcombine(networks, data):
         print "Logarithmic accuracy of network {0}: {1:.4f}\n".format(i,net.score(data))
     print "Accuracy of combined network: {0} / {1}".format(combo.accuracy(data),len(data))
     print "Logarithmic accuracy of combined network: {0:.4f}\n".format(combo.score(data))
-    
+
 def reportcombine2(networks, data):
     combo = network2.combine2(networks)
     print "Accuracy of combination of single digit networks: {0} / {1}".format(combo.accuracy(data),len(data))
@@ -27,13 +34,13 @@ for net,i in zip(networks,range(len(networks))): # Not much training done here, 
 reportcombine(networks, validation_data)
 
 ### High powered demo.  3 highly tuned networks of 100 neuron hidden layers.  Takes a long time, uncomment to run.
-# networks2 = [network2.Network([784, 100, 10]) for i in range(3)]
-# for net,i in zip(networks2,range(len(networks2))): # Serious training: this will take a while.
-#     print "Training network {0}:".format(i)
-#     net.SGD(training_data, 30, 10, 0.5, lmbda=5.0, evaluation_data=test_data, monitor_evaluation_accuracy=True)
-#     net.SGD(training_data, 60, 10, 0.1, lmbda=5.0, evaluation_data=test_data, monitor_evaluation_accuracy=True)
-# 
-# reportcombine(networks2, validation_data)
+networks2 = [network2.Network([784, 100, 10]) for i in range(3)]
+for net,i in zip(networks2,range(len(networks2))): # Serious training: this will take a while.
+    print "Training network {0}:".format(i)
+    net.SGD(training_data, 30, 10, 0.5, lmbda=5.0, evaluation_data=test_data, monitor_evaluation_accuracy=True)
+    net.SGD(training_data, 60, 10, 0.1, lmbda=5.0, evaluation_data=test_data, monitor_evaluation_accuracy=True)
+ 
+reportcombine(networks2, validation_data)
 
 ### Demo of training digits individually then combining into network.
 
@@ -51,3 +58,20 @@ for net,data,i in zip(snet,straining_data,range(len(snet))):
     net.SGD(data, 3, 10, 0.5)
 
 reportcombine2(snet,validation_data)
+
+### GRNN Stuff
+
+results_list2 = network2.GRNN(test_data,training_data,0.6) # accuracy 9673/10000 best so far
+
+# This sets up the mesh needed, etc.
+
+mat_in = np.asarray([point[0].reshape((len(point[0]),)) for point in training_data])
+mat_out = np.asarray([point[1].reshape((len(point[1]),)) for point in training_data])
+
+mesh_sizes = (150,80,40)
+
+mesh = [network2.meshify(mat_in,mat_out,size) for size in mesh_sizes]
+
+gamma = network2.connect(mat_in,mesh,mesh_sizes)
+
+results_list = network2.GRNNfast_lim(test_data,mat_in,mat_out,.85,mesh,gamma)

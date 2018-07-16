@@ -298,6 +298,17 @@ class SoftmaxLayer(object):
         "Return the accuracy for the mini-batch."
         return T.mean(T.eq(y, self.y_out))
 
+class GRNNLayer(object):
+    def __init__(self, n_in, n_out, training_data):
+        self.n_in = n_in
+        self.n_out = len(training_data[1][0]) # Or whatever, need to look at the new data structure
+        self.w = theano.shared(
+            np.asarray(
+                np.random.normal(
+                    loc=0.0, scale=np.sqrt(1.0/n_out), size=(n_in, n_out)),
+                dtype=theano.config.floatX), # This is totally wrong.  
+            name='w', borrow=True)
+        self.params = [self.w]
 
 #### Miscellanea
 def size(data):
