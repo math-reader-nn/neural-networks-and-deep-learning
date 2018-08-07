@@ -1,5 +1,6 @@
 ### Demo of most successful networks for coffee data
 import network2
+import coffee_loader
 
 # Load data, compute some useful metrics
 training_data,validation_data,test_data = coffee_loader.load_data()
@@ -10,6 +11,10 @@ ts_av = sum([datum[1] for datum in test_data])/float(len(test_data))
 ts_er = sum([abs(datum[1]-tr_av) for datum in test_data])/float(len(test_data))
 
 # Create network and set regularization parameter
+
+Sigmoid = network2.Sigmoid
+Probabilistic = network2.Probabilistic
+Linear = network2.Linear
 
 coffee = network2.Network([21,15,15,1],[Probabilistic,Probabilistic,Linear])
 lmbda = 0.01
@@ -45,7 +50,7 @@ def train(training_data=training_data, epochs=1000, mini_batch_size=60, eta=0.5,
     report_cost("",ts_costs[-4:])
 
 # Train 1500 sets of 1000 epochs, lowering eta when the cost isn't trending downward.
-eta = 0.5
+eta = 1.0
 min_cost = float('inf')
 delay = 0
 
